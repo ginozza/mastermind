@@ -1,5 +1,6 @@
+# Initialize MastermindGame object
 class MastermindGame
-  COLORS = %w[R G B Y O P]
+  COLORS = %w[R G B Y O P].freeze
   CODE_LENGTH = 4
 
   def initialize
@@ -14,10 +15,10 @@ class MastermindGame
     puts "Do you want to be the code creator or the guesser? (Enter 'creator' or 'guesser')"
     role = gets.chomp.downcase
 
-    if role == 'creator'
+    if role == "creator"
       player_creates_code
       computer_guesses_code
-    elsif role == 'guesser'
+    elsif role == "guesser"
       computer_creates_code
       player_guesses_code
     else
@@ -59,8 +60,10 @@ class MastermindGame
   end
 
   def computer_guesses_code
-    @computer_guesses = Array.new(CODE_LENGTH, COLORS.first)
-    loop do
+    possible_guesses = COLORS.repeated_permutation(CODE_LENGTH).to_a
+    until possible_guesses.empty?
+      @computer_guesses = possible_guesses.sample
+      possible_guesses.delete(@computer_guesses)
       feedback = get_feedback(@computer_guesses)
       puts "Computer's guess: #{@computer_guesses.join}, Feedback: #{feedback}"
 
@@ -72,12 +75,12 @@ class MastermindGame
   end
 
   def refine_computer_guess(feedback)
-    a_count = feedback.split('A').first.to_i
-    if a_count < CODE_LENGTH
-      unused_colors = COLORS - @computer_guesses
-      a_count.times { |i| @computer_guesses[i] = COLORS.sample }
-      @computer_guesses.fill { |i| unused_colors[i % unused_colors.size] }
-    end
+    a_count = feedback.split("A").first.to_i
+    return unless a_count < CODE_LENGTH
+
+    unused_colors = COLORS - @computer_guesses
+    a_count.times { |i| @computer_guesses[i] = COLORS.sample }
+    @computer_guesses.fill { |i| unused_colors[i % unused_colors.size] }
   end
 
   def get_feedback(guess)
@@ -91,5 +94,5 @@ class MastermindGame
   end
 end
 
-# Iniciar el juego
+# Create a new MastermindGame object
 MastermindGame.new
