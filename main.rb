@@ -1,82 +1,95 @@
-class SecretNumberGame
+class MastermindGame
+  COLORS = %w[R G B Y O P]
+  CODE_LENGTH = 4
+
   def initialize
-    @attempts = 0
-    @array_sorted_numbers = []
-    puts "Enter a maximum number for the secret number range:"
-    @numero_maximo = gets.chomp.to_i
-    @max_attempts = 12
-    start_game
+    @secret_code = []
+    @guess_history = []
+    @feedback_history = []
+    @computer_guesses = []
+    setup_game
   end
 
-  def start_game
-    @secret_number = initial_conditions
-    loop do
-      correct_guess = check_attempt
-      @attempts += 1
+  def setup_game
+    puts "Do you want to be the code creator or the guesser? (Enter 'creator' or 'guesser')"
+    role = gets.chomp.downcase
 
-      next unless correct_guess || @attempts >= @max_attempts
-
-      if @attempts >= @max_attempts && !correct_guess
-        assign_text("You've reached the maximum of #{@max_attempts} attempts!")
-      end
-
-      puts "Do you want to keep playing? (y/n)"
-      response = gets.chomp.downcase
-      break unless response == "y"
-
-      reset_game
+    if role == 'creator'
+      player_creates_code
+      computer_guesses_code
+    elsif role == 'guesser'
+      computer_creates_code
+      player_guesses_code
+    else
+      puts "Invalid choice. Please enter 'creator' or 'guesser'."
+      setup_game
     end
   end
 
-  private
-
-  def assign_text(text)
-    puts text
+  def computer_creates_code
+    @secret_code = Array.new(CODE_LENGTH) { COLORS.sample }
+    puts "The computer has created a secret code. Start guessing!"
   end
 
-  def check_attempt
-    puts "Enter your guess:"
-    user_number = gets.chomp.to_i
-
-    if user_number == @secret_number
-      assign_text("You guessed the number in #{@attempts} #{@attempts == 1 ? 'try' : 'tries'}!")
-      true
+  def player_creates_code
+    puts "Enter your secret code (#{CODE_LENGTH} letters from #{COLORS.join(', ')}):"
+    input = gets.chomp.upcase.chars
+    if valid_code?(input)
+      @secret_code = input
     else
-      if user_number > @secret_number
-        assign_text("The secret number is lower")
+      puts "Invalid code. Please enter exactly #{CODE_LENGTH} letters from #{COLORS.join(', ')}."
+      player_creates_code
+    end
+  end
+
+  def player_guesses_code
+    until @guess_history.last == @secret_code
+      puts "Enter your guess (#{CODE_LENGTH} letters from #{COLORS.join(', ')}):"
+      guess = gets.chomp.upcase.chars
+      if valid_code?(guess)
+        feedback = get_feedback(guess)
+        @guess_history << guess
+        @feedback_history << feedback
+        puts "Feedback: #{feedback}"
       else
-        assign_text("The secret number is higher")
+        puts "Invalid guess. Please enter exactly #{CODE_LENGTH} letters from #{COLORS.join(', ')}."
       end
-      false
+    end
+    puts "Congratulations! You've guessed the secret code!"
+  end
+
+  def computer_guesses_code
+    @computer_guesses = Array.new(CODE_LENGTH, COLORS.first)
+    loop do
+      feedback = get_feedback(@computer_guesses)
+      puts "Computer's guess: #{@computer_guesses.join}, Feedback: #{feedback}"
+
+      break if feedback == "4A0B"
+
+      refine_computer_guess(feedback)
+    end
+    puts "The computer has guessed your secret code!"
+  end
+
+  def refine_computer_guess(feedback)
+    a_count = feedback.split('A').first.to_i
+    if a_count < CODE_LENGTH
+      unused_colors = COLORS - @computer_guesses
+      a_count.times { |i| @computer_guesses[i] = COLORS.sample }
+      @computer_guesses.fill { |i| unused_colors[i % unused_colors.size] }
     end
   end
 
-  def generate_secret_number
-    generated_number = rand(1..@numero_maximo)
-
-    if @array_sorted_numbers.length == @numero_maximo
-      assign_text("All possible numbers have been drawn")
-      nil
-    elsif @array_sorted_numbers.include?(generated_number)
-      generate_secret_number
-    else
-      @array_sorted_numbers << generated_number
-      generated_number
-    end
+  def get_feedback(guess)
+    a = guess.zip(@secret_code).count { |g, s| g == s }
+    b = guess.uniq.count { |color| @secret_code.include?(color) } - a
+    "#{a}A#{b}B"
   end
 
-  def initial_conditions
-    assign_text("Secret Number Game!")
-    assign_text("Guess a number between 1 and #{@numero_maximo}")
-    generate_secret_number
-  end
-
-  def reset_game
-    @array_sorted_numbers = []
-    @attempts = 0
-    @secret_number = initial_conditions
+  def valid_code?(code)
+    code.length == CODE_LENGTH && code.all? { |color| COLORS.include?(color) }
   end
 end
 
-# Start the game
-SecretNumberGame.new
+# Iniciar el juego
+MastermindGame.new
